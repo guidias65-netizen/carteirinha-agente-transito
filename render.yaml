@@ -2,7 +2,7 @@ services:
     - type: web
       name: carteirinha-agente-transito
       runtime: node
-      buildCommand: npm install && npm run build
+      buildCommand: npm install --include=dev && npm run build
       startCommand: node server.js
       healthCheckPath: /api/healthz
       envVars:

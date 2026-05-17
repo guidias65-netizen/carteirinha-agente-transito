@@ -18,7 +18,7 @@ import { defineConfig } from "vite";
       emptyOutDir: true,
     },
     define: {
-      "import.meta.env.VITE_API_URL": JSON.stringify(""),
+      "import.meta.env.VITE_API_URL": JSON.stringify("/api"),
     },
   });
   

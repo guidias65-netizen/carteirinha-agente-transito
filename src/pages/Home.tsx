@@ -4,35 +4,44 @@ import { Layout } from "@/components/Layout";
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { 
-  Table, 
-  TableBody, 
-  TableCell, 
-  TableHead, 
-  TableHeader, 
-  TableRow 
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
 } from "@/components/ui/table";
-import { Plus, Search, Edit, Trash2 } from "lucide-react";
+import { Plus, Search, Edit, Trash2, RefreshCw } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 export default function Home() {
-  const { agents, deleteAgent } = useAgents();
+  const { agents, deleteAgent, loading, error, refetch } = useAgents();
   const [search, setSearch] = useState("");
   const { toast } = useToast();
 
-  const filteredAgents = agents.filter(a => 
-    a.nome.toLowerCase().includes(search.toLowerCase()) || 
-    a.matricula.includes(search) ||
-    a.funcional.includes(search)
+  const filteredAgents = agents.filter(
+    (a) =>
+      a.nome.toLowerCase().includes(search.toLowerCase()) ||
+      a.matricula.includes(search) ||
+      a.funcional.includes(search),
   );
 
-  const handleDelete = (id: string, nome: string) => {
+  const handleDelete = async (id: string, nome: string) => {
     if (confirm(`Tem certeza que deseja remover o agente ${nome}?`)) {
-      deleteAgent(id);
-      toast({
-        title: "Agente removido",
-        description: `${nome} foi removido do sistema.`,
-      });
+      try {
+        await deleteAgent(id);
+        toast({
+          title: "Agente removido",
+          description: `${nome} foi removido do sistema.`,
+        });
+      } catch {
+        toast({
+          title: "Erro ao remover",
+          description: "Não foi possível remover o agente. Tente novamente.",
+          variant: "destructive",
+        });
+      }
     }
   };
 
@@ -40,8 +49,12 @@ export default function Home() {
     <Layout>
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight text-primary">Agentes Cadastrados</h1>
-          <p className="text-muted-foreground mt-1">Gerencie os agentes de trânsito e emita suas carteirinhas funcionais.</p>
+          <h1 className="text-3xl font-bold tracking-tight text-primary">
+            Agentes Cadastrados
+          </h1>
+          <p className="text-muted-foreground mt-1">
+            Gerencie os agentes de trânsito e emita suas carteirinhas funcionais.
+          </p>
         </div>
         <Link href="/novo">
           <Button className="bg-accent text-accent-foreground hover:bg-accent/90 font-medium">
@@ -51,17 +64,26 @@ export default function Home() {
         </Link>
       </div>
 
-      <div className="bg-card rounded-lg shadow-sm border mb-6 p-4 flex items-center">
+      <div className="bg-card rounded-lg shadow-sm border mb-6 p-4 flex items-center gap-3">
         <div className="relative w-full max-w-md">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <Input 
-            placeholder="Buscar por nome, matrícula ou funcional..." 
+          <Input
+            placeholder="Buscar por nome, matrícula ou funcional..."
             className="pl-9 bg-muted/50 border-transparent focus-visible:bg-background"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
         </div>
+        <Button variant="ghost" size="icon" onClick={refetch} title="Atualizar lista">
+          <RefreshCw className="w-4 h-4" />
+        </Button>
       </div>
+
+      {error && (
+        <div className="mb-4 p-4 rounded-lg bg-destructive/10 border border-destructive/20 text-destructive text-sm">
+          Erro ao carregar agentes: {error}
+        </div>
+      )}
 
       <div className="border rounded-md bg-card overflow-hidden">
         <Table>
@@ -76,16 +98,24 @@ export default function Home() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {filteredAgents.length === 0 ? (
+            {loading ? (
+              <TableRow>
+                <TableCell colSpan={6} className="text-center py-12 text-muted-foreground">
+                  Carregando agentes...
+                </TableCell>
+              </TableRow>
+            ) : filteredAgents.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={6} className="text-center py-12 text-muted-foreground">
                   Nenhum agente encontrado.
                 </TableCell>
               </TableRow>
             ) : (
-              filteredAgents.map(agent => (
+              filteredAgents.map((agent) => (
                 <TableRow key={agent.id}>
-                  <TableCell className="font-medium text-primary uppercase">{agent.nome}</TableCell>
+                  <TableCell className="font-medium text-primary uppercase">
+                    {agent.nome}
+                  </TableCell>
                   <TableCell>{agent.matricula}</TableCell>
                   <TableCell>{agent.funcional}</TableCell>
                   <TableCell>{agent.cpf}</TableCell>
@@ -93,13 +123,17 @@ export default function Home() {
                   <TableCell className="text-right">
                     <div className="flex justify-end gap-2">
                       <Link href={`/agente/${agent.id}`}>
-                        <Button variant="outline" size="sm" className="h-8 border-primary/20 hover:border-primary/50">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="h-8 border-primary/20 hover:border-primary/50"
+                        >
                           <Edit className="w-3.5 h-3.5 mr-1" /> Editar & Emitir
                         </Button>
                       </Link>
-                      <Button 
-                        variant="ghost" 
-                        size="sm" 
+                      <Button
+                        variant="ghost"
+                        size="sm"
                         className="h-8 text-destructive hover:text-destructive hover:bg-destructive/10"
                         onClick={() => handleDelete(agent.id, agent.nome)}
                       >

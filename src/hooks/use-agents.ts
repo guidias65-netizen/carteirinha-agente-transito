@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 
 export interface Agent {
   id: string;
@@ -16,49 +16,80 @@ export interface Agent {
   equipamentoMarca: string;
   equipamentoNrSerie: string;
   foto: string;
+  criadoEm?: string;
 }
 
-const STORAGE_KEY = 'agentes_transito_sorocaba';
+const API_BASE = (import.meta.env.VITE_API_URL ?? "/api") as string;
+
+async function apiFetch<T>(path: string, options?: RequestInit): Promise<T> {
+  const res = await fetch(`${API_BASE}${path}`, {
+    ...options,
+    headers: { "Content-Type": "application/json", ...options?.headers },
+  });
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error((body as { error?: string }).error ?? `HTTP ${res.status}`);
+  }
+  if (res.status === 204) return undefined as T;
+  return res.json() as Promise<T>;
+}
 
 export function useAgents() {
   const [agents, setAgents] = useState<Agent[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    const stored = localStorage.getItem(STORAGE_KEY);
-    if (stored) {
-      setAgents(JSON.parse(stored));
+  const fetchAgents = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const data = await apiFetch<Agent[]>("/agentes");
+      setAgents(data);
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setLoading(false);
     }
   }, []);
 
-  const saveAgents = (newAgents: Agent[]) => {
-    setAgents(newAgents);
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(newAgents));
-  };
+  useEffect(() => {
+    fetchAgents();
+  }, [fetchAgents]);
 
-  const addAgent = (agent: Omit<Agent, 'id'>) => {
-    const id = crypto.randomUUID();
-    const newAgent = { ...agent, id };
-    saveAgents([...agents, newAgent]);
-    return newAgent;
-  };
+  const addAgent = useCallback(async (agent: Omit<Agent, 'id' | 'criadoEm'>): Promise<Agent> => {
+    const created = await apiFetch<Agent>("/agentes", {
+      method: "POST",
+      body: JSON.stringify(agent),
+    });
+    setAgents(prev => [...prev, created]);
+    return created;
+  }, []);
 
-  const updateAgent = (id: string, updates: Partial<Agent>) => {
-    saveAgents(agents.map(a => a.id === id ? { ...a, ...updates } : a));
-  };
+  const updateAgent = useCallback(async (id: string, updates: Partial<Agent>): Promise<void> => {
+    const updated = await apiFetch<Agent>(`/agentes/${id}`, {
+      method: "PUT",
+      body: JSON.stringify(updates),
+    });
+    setAgents(prev => prev.map(a => a.id === id ? updated : a));
+  }, []);
 
-  const deleteAgent = (id: string) => {
-    saveAgents(agents.filter(a => a.id !== id));
-  };
+  const deleteAgent = useCallback(async (id: string): Promise<void> => {
+    await apiFetch<void>(`/agentes/${id}`, { method: "DELETE" });
+    setAgents(prev => prev.filter(a => a.id !== id));
+  }, []);
 
-  const getAgent = (id: string) => {
+  const getAgent = useCallback((id: string): Agent | undefined => {
     return agents.find(a => a.id === id);
-  };
+  }, [agents]);
 
   return {
     agents,
+    loading,
+    error,
     addAgent,
     updateAgent,
     deleteAgent,
     getAgent,
+    refetch: fetchAgents,
   };
 }

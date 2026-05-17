@@ -23,10 +23,7 @@ async function compressPhoto(dataUrl: string, w = 50, h = 70): Promise<string> {
 
 function buildConsultaUrl(agent: Agent): string {
   const base = import.meta.env.BASE_URL.replace(/\/$/, "");
-  // Encode all fields except the full-size photo to keep the URL short
-  const { foto: _foto, ...rest } = agent;
-  const d = btoa(unescape(encodeURIComponent(JSON.stringify(rest))));
-  return `${window.location.origin}${base}/consulta/${agent.id}?d=${d}`;
+  return `${window.location.origin}${base}/consulta/${agent.id}`;
 }
 
 interface CarteirinhaPreviewProps {
@@ -177,8 +174,8 @@ export function CarteirinhaPreview({ agent }: CarteirinhaPreviewProps) {
       // QR code — blank space orig centre (550,267), size=68
       // Photo is excluded from QR to stay within capacity limits
       const qrDataUrl = await QRCode.toDataURL(buildConsultaUrl(agent), {
-        width: 300, margin: 1, errorCorrectionLevel: "M",
-        color: { dark: "#1c1c2e", light: "#ffffff" },
+        width: 300, margin: 1, errorCorrectionLevel: "L",
+        color: { dark: "#000000", light: "#ffffff" },
       });
       const qrSize = px2mm(s(84));
       pdf.addImage(qrDataUrl, "PNG",
@@ -353,8 +350,8 @@ function CardFrontRender(
           value={buildConsultaUrl(agent)}
           size={s(84)}
           bgColor="#ffffff"
-          fgColor="#1c1c2e"
-          level="M"
+          fgColor="#000000"
+          level="L"
           style={{ display: "block" }}
         />
       </div>

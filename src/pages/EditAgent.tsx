@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useAgents } from "@/hooks/use-agents";
 import { Layout } from "@/components/Layout";
 import { AgentForm } from "@/components/AgentForm";
@@ -10,18 +11,35 @@ import { ArrowLeft } from "lucide-react";
 
 export default function EditAgent() {
   const { id } = useParams<{ id: string }>();
-  const { getAgent, updateAgent } = useAgents();
+  const { getAgent, updateAgent, loading } = useAgents();
   const [, setLocation] = useLocation();
   const { toast } = useToast();
+  const [saving, setSaving] = useState(false);
 
   const agent = getAgent(id || "");
+
+  if (loading) {
+    return (
+      <Layout>
+        <div className="text-center py-20 text-muted-foreground">
+          Carregando...
+        </div>
+      </Layout>
+    );
+  }
 
   if (!agent) {
     return (
       <Layout>
         <div className="text-center py-20">
-          <h2 className="text-2xl font-bold text-destructive">Agente não encontrado</h2>
-          <Button variant="link" onClick={() => setLocation("/")} className="mt-4">
+          <h2 className="text-2xl font-bold text-destructive">
+            Agente não encontrado
+          </h2>
+          <Button
+            variant="link"
+            onClick={() => setLocation("/")}
+            className="mt-4"
+          >
             Voltar para a lista
           </Button>
         </div>
@@ -33,7 +51,11 @@ export default function EditAgent() {
     <Layout>
       <div className="max-w-5xl mx-auto">
         <div className="mb-6">
-          <Button variant="ghost" onClick={() => setLocation("/")} className="gap-2 -ml-4 text-muted-foreground hover:text-primary">
+          <Button
+            variant="ghost"
+            onClick={() => setLocation("/")}
+            className="gap-2 -ml-4 text-muted-foreground hover:text-primary"
+          >
             <ArrowLeft className="w-4 h-4" />
             Voltar
           </Button>
@@ -41,33 +63,53 @@ export default function EditAgent() {
 
         <Tabs defaultValue="preview" className="w-full">
           <TabsList className="grid w-full grid-cols-2 mb-8 h-12">
-            <TabsTrigger value="preview" className="text-sm font-medium">Pré-visualização e Emissão</TabsTrigger>
-            <TabsTrigger value="edit" className="text-sm font-medium">Editar Dados</TabsTrigger>
+            <TabsTrigger value="preview" className="text-sm font-medium">
+              Pré-visualização e Emissão
+            </TabsTrigger>
+            <TabsTrigger value="edit" className="text-sm font-medium">
+              Editar Dados
+            </TabsTrigger>
           </TabsList>
-          
+
           <TabsContent value="preview" className="py-4">
             <div className="bg-card border rounded-lg p-8 shadow-sm">
               <div className="text-center mb-8">
-                <h2 className="text-2xl font-bold text-primary mb-2">Emissão de Credencial</h2>
-                <p className="text-muted-foreground">Verifique os dados antes de gerar o documento em PDF.</p>
+                <h2 className="text-2xl font-bold text-primary mb-2">
+                  Emissão de Credencial
+                </h2>
+                <p className="text-muted-foreground">
+                  Verifique os dados antes de gerar o documento em PDF.
+                </p>
               </div>
-              
               <CarteirinhaPreview agent={agent} />
             </div>
           </TabsContent>
-          
+
           <TabsContent value="edit">
-            <AgentForm 
+            <AgentForm
               initialData={agent}
-              onSubmit={(data) => {
-                updateAgent(agent.id, data);
-                toast({
-                  title: "Dados Atualizados",
-                  description: "As informações do agente foram atualizadas.",
-                });
-                setLocation("/");
+              onSubmit={async (data) => {
+                setSaving(true);
+                try {
+                  await updateAgent(agent.id, data);
+                  toast({
+                    title: "Dados Atualizados",
+                    description:
+                      "As informações do agente foram atualizadas.",
+                  });
+                  setLocation("/");
+                } catch (e) {
+                  toast({
+                    title: "Erro ao atualizar",
+                    description: (e as Error).message ?? "Tente novamente.",
+                    variant: "destructive",
+                  });
+                } finally {
+                  setSaving(false);
+                }
               }}
               onCancel={() => setLocation("/")}
+              saving={saving}
             />
           </TabsContent>
         </Tabs>

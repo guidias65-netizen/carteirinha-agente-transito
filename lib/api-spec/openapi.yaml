@@ -1,0 +1,244 @@
+openapi: 3.1.0
+info:
+  # Do not change the title, if the title changes, the import paths will be broken
+  title: Api
+  version: 0.1.0
+  description: API specification
+servers:
+  - url: /api
+    description: Base API path
+tags:
+  - name: health
+    description: Health operations
+  - name: agentes
+    description: Agentes de Trânsito
+paths:
+  /healthz:
+    get:
+      operationId: healthCheck
+      tags: [health]
+      summary: Health check
+      description: Returns server health status
+      responses:
+        "200":
+          description: Healthy
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthStatus"
+
+  /agentes:
+    get:
+      operationId: listAgentes
+      tags: [agentes]
+      summary: Lista todos os agentes
+      responses:
+        "200":
+          description: Lista de agentes
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Agente"
+    post:
+      operationId: createAgente
+      tags: [agentes]
+      summary: Cadastra novo agente
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AgenteInput"
+      responses:
+        "201":
+          description: Agente criado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Agente"
+        "400":
+          description: Dados inválidos
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /agentes/{id}:
+    get:
+      operationId: getAgente
+      tags: [agentes]
+      summary: Busca agente por ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Agente encontrado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Agente"
+        "404":
+          description: Agente não encontrado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    put:
+      operationId: updateAgente
+      tags: [agentes]
+      summary: Atualiza agente
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AgenteInput"
+      responses:
+        "200":
+          description: Agente atualizado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Agente"
+        "404":
+          description: Agente não encontrado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    delete:
+      operationId: deleteAgente
+      tags: [agentes]
+      summary: Remove agente
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "204":
+          description: Agente removido
+        "404":
+          description: Agente não encontrado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+components:
+  schemas:
+    HealthStatus:
+      type: object
+      properties:
+        status:
+          type: string
+      required:
+        - status
+
+    Agente:
+      type: object
+      properties:
+        id:
+          type: string
+        nome:
+          type: string
+        matricula:
+          type: string
+        funcional:
+          type: string
+        cpf:
+          type: string
+        dataNascimento:
+          type: string
+        tipoSanguineo:
+          type: string
+        nacionalidade:
+          type: string
+        naturalidadeUf:
+          type: string
+        dataExpedicao:
+          type: string
+        validade:
+          type: string
+        foto:
+          type: string
+        equipamentoTipo:
+          type: string
+        equipamentoMarca:
+          type: string
+        equipamentoNrSerie:
+          type: string
+        criadoEm:
+          type: string
+      required:
+        - id
+        - nome
+        - matricula
+        - funcional
+        - cpf
+        - dataNascimento
+        - tipoSanguineo
+        - nacionalidade
+        - naturalidadeUf
+        - dataExpedicao
+        - validade
+        - foto
+        - equipamentoTipo
+        - equipamentoMarca
+        - equipamentoNrSerie
+        - criadoEm
+
+    AgenteInput:
+      type: object
+      properties:
+        nome:
+          type: string
+        matricula:
+          type: string
+        funcional:
+          type: string
+        cpf:
+          type: string
+        dataNascimento:
+          type: string
+        tipoSanguineo:
+          type: string
+        nacionalidade:
+          type: string
+        naturalidadeUf:
+          type: string
+        dataExpedicao:
+          type: string
+        validade:
+          type: string
+        foto:
+          type: string
+        equipamentoTipo:
+          type: string
+        equipamentoMarca:
+          type: string
+        equipamentoNrSerie:
+          type: string
+      required:
+        - nome
+
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+      required:
+        - error

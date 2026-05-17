@@ -46,8 +46,9 @@ type AgentFormValues = z.infer<typeof agentSchema>;
 
 interface AgentFormProps {
   initialData?: Agent;
-  onSubmit: (data: Omit<Agent, "id">) => void;
+  onSubmit: (data: Omit<Agent, "id" | "criadoEm">) => void | Promise<void>;
   onCancel: () => void;
+  saving?: boolean;
 }
 
 /** Aplica máscara dd/mm/aaaa enquanto o usuário digita */
@@ -76,7 +77,7 @@ function addFiveYears(dateStr: string): string {
   return `${dd}/${mm}/${year + 5}`;
 }
 
-export function AgentForm({ initialData, onSubmit, onCancel }: AgentFormProps) {
+export function AgentForm({ initialData, onSubmit, onCancel, saving = false }: AgentFormProps) {
   const [fotoBase64, setFotoBase64] = useState<string>(initialData?.foto || "");
 
   const form = useForm<AgentFormValues>({
@@ -383,11 +384,11 @@ export function AgentForm({ initialData, onSubmit, onCancel }: AgentFormProps) {
             </div>
 
             <div className="flex justify-end gap-4 pt-4">
-              <Button type="button" variant="outline" onClick={onCancel}>
+              <Button type="button" variant="outline" onClick={onCancel} disabled={saving}>
                 Cancelar
               </Button>
-              <Button type="submit" className="bg-primary text-primary-foreground">
-                Salvar Agente
+              <Button type="submit" className="bg-primary text-primary-foreground" disabled={saving}>
+                {saving ? "Salvando..." : "Salvar Agente"}
               </Button>
             </div>
           </form>

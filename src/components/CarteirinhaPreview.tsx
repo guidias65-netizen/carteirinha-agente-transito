@@ -7,19 +7,6 @@ import { Button } from "@/components/ui/button";
 import { Agent } from "@/hooks/use-agents";
 import { Download } from "lucide-react";
 
-async function compressPhoto(dataUrl: string, w = 50, h = 70): Promise<string> {
-  return new Promise((res) => {
-    const img = new Image();
-    img.onload = () => {
-      const c = document.createElement("canvas");
-      c.width = w; c.height = h;
-      c.getContext("2d")!.drawImage(img, 0, 0, w, h);
-      res(c.toDataURL("image/jpeg", 0.28));
-    };
-    img.onerror = () => res("");
-    img.src = dataUrl;
-  });
-}
 
 function buildConsultaUrl(agent: Agent): string {
   const base = import.meta.env.BASE_URL.replace(/\/$/, "");

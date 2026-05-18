@@ -101,11 +101,26 @@ export function AgentForm({ initialData, onSubmit, onCancel, saving = false }: A
 
   const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => setFotoBase64(reader.result as string);
-      reader.readAsDataURL(file);
-    }
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      const img = new Image();
+      img.onload = () => {
+        const MAX_W = 600;
+        const MAX_H = 800;
+        let { width, height } = img;
+        const ratio = Math.min(MAX_W / width, MAX_H / height, 1);
+        width = Math.round(width * ratio);
+        height = Math.round(height * ratio);
+        const canvas = document.createElement("canvas");
+        canvas.width = width;
+        canvas.height = height;
+        canvas.getContext("2d")!.drawImage(img, 0, 0, width, height);
+        setFotoBase64(canvas.toDataURL("image/jpeg", 0.92));
+      };
+      img.src = reader.result as string;
+    };
+    reader.readAsDataURL(file);
   };
 
   const handleSubmit = (values: AgentFormValues) => {

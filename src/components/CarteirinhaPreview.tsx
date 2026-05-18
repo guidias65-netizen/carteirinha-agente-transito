@@ -147,7 +147,7 @@ export function CarteirinhaPreview({ agent }: CarteirinhaPreviewProps) {
       pdf.setTextColor(255, 255, 255);
       if (agent.funcional)
         pdf.text(
-          `Nº: ${agent.funcional}`,
+          `Nº ${agent.funcional}`,
           px2mm(s(119)), px2mm(s(334)),
           { align: "center", baseline: "middle" },
         );
@@ -336,7 +336,7 @@ function CardFrontRender(
           fontFamily: "Arial, Helvetica, sans-serif",
           letterSpacing: "0.05em",
         }}>
-          Nº: {agent.funcional}
+          Nº {agent.funcional}
         </span>
       </div>
 

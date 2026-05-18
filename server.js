@@ -86,9 +86,34 @@ import express from 'express';
     }
   });
 
+  // Busca por matrícula + 4 primeiros dígitos do CPF (para acesso próprio do agente)
+  app.post('/api/agentes/buscar', async (req, res) => {
+    try {
+      const { matricula, cpf4 } = req.body;
+      if (!matricula || !cpf4 || cpf4.length !== 4) {
+        return res.status(400).json({ error: 'Matrícula e 4 dígitos do CPF são obrigatórios.' });
+      }
+      const { rows } = await pool.query(
+        'SELECT * FROM agentes WHERE LOWER(matricula) = LOWER($1)',
+        [matricula.trim()]
+      );
+      if (!rows[0]) return res.status(404).json({ error: 'Agente não encontrado.' });
+
+      // Extrai apenas os dígitos do CPF armazenado e compara os 4 primeiros
+      const cpfDigits = rows[0].cpf.replace(/\D/g, '');
+      if (cpfDigits.slice(0, 4) !== cpf4.trim()) {
+        return res.status(401).json({ error: 'CPF incorreto.' });
+      }
+
+      res.json({ id: rows[0].id });
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ error: err.message });
+    }
+  });
+
   app.post('/api/agentes', async (req, res) => {
     try {
-      // Gera número funcional automaticamente: conta agentes existentes + 1, formata com zeros à esquerda
       const { rows: countRows } = await pool.query('SELECT COUNT(*) FROM agentes');
       const nextNum = parseInt(countRows[0].count, 10) + 1;
       const funcional = String(nextNum).padStart(3, '0');
@@ -114,7 +139,6 @@ import express from 'express';
   app.put('/api/agentes/:id', async (req, res) => {
     try {
       const b = req.body;
-      // funcional não é atualizado — foi atribuído na criação e não muda
       const { rows } = await pool.query(
         `UPDATE agentes SET nome=$1,matricula=$2,cpf=$3,data_nascimento=$4,
           tipo_sanguineo=$5,nacionalidade=$6,naturalidade_uf=$7,data_expedicao=$8,
@@ -145,7 +169,6 @@ import express from 'express';
     }
   });
 
-  // Frontend estático
   app.use(express.static(join(__dirname, 'dist')));
   app.get('*', (_, res) => res.sendFile(join(__dirname, 'dist', 'index.html')));
 

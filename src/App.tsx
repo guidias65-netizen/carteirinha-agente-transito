@@ -11,6 +11,7 @@ import EditAgent from "@/pages/EditAgent";
 import PreviewDemo from "@/pages/PreviewDemo";
 import AgentPublicView from "@/pages/AgentPublicView";
 import LoginPage from "@/pages/LoginPage";
+import AcessoAgente from "@/pages/AcessoAgente";
 
 const queryClient = new QueryClient();
 
@@ -26,6 +27,7 @@ function Router() {
     <Switch>
       {/* Public routes — no auth needed */}
       <Route path="/consulta/:id" component={AgentPublicView} />
+      <Route path="/acesso" component={AcessoAgente} />
       <Route path="/login">
         {loggedIn ? <Redirect to="/" /> : <LoginPage />}
       </Route>

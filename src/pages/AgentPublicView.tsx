@@ -1,14 +1,29 @@
 import { useParams } from "wouter";
 import { useState, useEffect } from "react";
 import type { Agent } from "@/hooks/use-agents";
-import { CardFront, CardBack, W } from "@/components/CarteirinhaPreview";
+import { CardFront, CardBack, W, H } from "@/components/CarteirinhaPreview";
 
 const API_BASE = (import.meta.env.VITE_API_URL ?? "/api") as string;
+
+function useCardScale() {
+  const [scale, setScale] = useState(1);
+  useEffect(() => {
+    const calc = () => {
+      const available = window.innerWidth - 32;
+      setScale(Math.min(Math.max(available / W, 1), 1.6));
+    };
+    calc();
+    window.addEventListener("resize", calc);
+    return () => window.removeEventListener("resize", calc);
+  }, []);
+  return scale;
+}
 
 export default function AgentPublicView() {
   const { id } = useParams<{ id: string }>();
   const [agent, setAgent] = useState<Agent | null>(null);
   const [loading, setLoading] = useState(true);
+  const scale = useCardScale();
 
   useEffect(() => {
     if (!id) { setLoading(false); return; }
@@ -43,8 +58,12 @@ export default function AgentPublicView() {
     );
   }
 
+  const scaledW = Math.round(W * scale);
+  const scaledH = Math.round(H * scale);
+
   return (
     <div style={{ minHeight: "100dvh", background: "#f9fafb", display: "flex", flexDirection: "column", alignItems: "center", padding: "0 0 40px" }}>
+      {/* Cabeçalho */}
       <div style={{ width: "100%", background: "#ffffff", borderBottom: "1px solid #e5e7eb", display: "flex", flexDirection: "column", alignItems: "center", padding: "20px 16px 16px", gap: 6, boxShadow: "0 1px 4px rgba(0,0,0,0.06)" }}>
         <img src="/brasao-prefeitura.png" alt="Brasão de Sorocaba" style={{ height: 60, objectFit: "contain" }} />
         <div style={{ textAlign: "center" }}>
@@ -62,15 +81,23 @@ export default function AgentPublicView() {
         </div>
       </div>
 
-      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 12, width: "100%", maxWidth: W + 32, padding: "24px 16px 0" }}>
+      {/* Cartões escalados */}
+      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 12, width: "100%", padding: "24px 16px 0" }}>
         <CardLabel>FRENTE</CardLabel>
-        <div style={{ borderRadius: 8, boxShadow: "0 4px 20px rgba(0,0,0,0.15)", overflow: "hidden", width: W, flexShrink: 0 }}>
-          <CardFront agent={agent} />
+
+        {/* Wrapper com tamanho escalado, cartão interno com transform */}
+        <div style={{ width: scaledW, height: scaledH, position: "relative", borderRadius: 8, boxShadow: "0 4px 20px rgba(0,0,0,0.15)", overflow: "hidden", flexShrink: 0 }}>
+          <div style={{ transform: `scale(${scale})`, transformOrigin: "top left", position: "absolute", top: 0, left: 0 }}>
+            <CardFront agent={agent} />
+          </div>
         </div>
 
         <CardLabel>VERSO</CardLabel>
-        <div style={{ borderRadius: 8, boxShadow: "0 4px 20px rgba(0,0,0,0.15)", overflow: "hidden", width: W, flexShrink: 0 }}>
-          <CardBack agent={agent} />
+
+        <div style={{ width: scaledW, height: scaledH, position: "relative", borderRadius: 8, boxShadow: "0 4px 20px rgba(0,0,0,0.15)", overflow: "hidden", flexShrink: 0 }}>
+          <div style={{ transform: `scale(${scale})`, transformOrigin: "top left", position: "absolute", top: 0, left: 0 }}>
+            <CardBack agent={agent} />
+          </div>
         </div>
 
         <div style={{ marginTop: 16, display: "flex", alignItems: "center", gap: 8, padding: "6px 16px", background: "#ffffff", border: "1px solid #e5e7eb", borderRadius: 20, boxShadow: "0 1px 4px rgba(0,0,0,0.06)" }}>

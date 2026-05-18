@@ -93,8 +93,8 @@ export function AgentForm({ initialData, onSubmit, onCancel, saving = false }: A
       validade: initialData?.validade || addFiveYears(
         initialData?.dataExpedicao || new Date().toLocaleDateString("pt-BR")
       ),
-      equipamentoTipo: initialData?.equipamentoTipo || "",
-      equipamentoMarca: initialData?.equipamentoMarca || "",
+      equipamentoTipo: initialData?.equipamentoTipo || "PISTOLA",
+      equipamentoMarca: initialData?.equipamentoMarca || "CONDOR",
       equipamentoNrSerie: initialData?.equipamentoNrSerie || "",
     },
   });

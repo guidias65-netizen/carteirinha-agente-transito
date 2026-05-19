@@ -232,7 +232,6 @@ export default function AcessoAgente() {
               ref={inputFileRef}
               type="file"
               accept="image/*"
-              capture="user"
               onChange={handleFotoChange}
               style={{ display: "none" }}
             />

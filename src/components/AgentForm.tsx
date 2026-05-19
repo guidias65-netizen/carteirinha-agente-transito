@@ -140,7 +140,7 @@ export function AgentForm({ initialData, onSubmit, onCancel, saving = false }: A
           {initialData ? "Editar Agente" : "Novo Agente de Trânsito"}
         </CardTitle>
         <CardDescription>
-          Preencha os dados oficiais para a geração da carteirinha.
+          Preencha os dados oficiais para a geração da funcional.
         </CardDescription>
       </CardHeader>
       <CardContent className="pt-6">

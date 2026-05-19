@@ -1,7 +1,8 @@
 import { useParams } from "wouter";
 import { useState, useEffect } from "react";
 import type { Agent } from "@/hooks/use-agents";
-import { CardFront, CardBack, W, H } from "@/components/CarteirinhaPreview";
+import { CardFront, CardBack, W, H, exportAgentPDF } from "@/components/CarteirinhaPreview";
+import { Download } from "lucide-react";
 
 const API_BASE = (import.meta.env.VITE_API_URL ?? "/api") as string;
 
@@ -23,7 +24,14 @@ export default function MinhaCarteirinha() {
   const { id } = useParams<{ id: string }>();
   const [agent, setAgent] = useState<Agent | null>(null);
   const [loading, setLoading] = useState(true);
+  const [exporting, setExporting] = useState(false);
   const scale = useCardScale();
+
+  const handleExport = async () => {
+    if (!agent) return;
+    setExporting(true);
+    try { await exportAgentPDF(agent); } finally { setExporting(false); }
+  };
 
   useEffect(() => {
     if (!id) { setLoading(false); return; }
@@ -83,6 +91,26 @@ export default function MinhaCarteirinha() {
 
       {/* Cartões escalados */}
       <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 12, width: "100%", padding: "24px 16px 0" }}>
+
+        {/* Botão exportar PDF */}
+        <button
+          onClick={handleExport}
+          disabled={exporting}
+          style={{
+            display: "flex", alignItems: "center", gap: 8,
+            padding: "10px 24px", borderRadius: 8, border: "none",
+            background: exporting ? "#d1d5db" : "#f59e0b",
+            color: exporting ? "#9ca3af" : "#000000",
+            fontWeight: 800, fontSize: 14, letterSpacing: "0.05em",
+            textTransform: "uppercase", cursor: exporting ? "wait" : "pointer",
+            boxShadow: exporting ? "none" : "0 2px 8px rgba(245,158,11,0.4)",
+            transition: "all 0.15s",
+          }}
+        >
+          <Download size={16} />
+          {exporting ? "Gerando PDF..." : "Exportar PDF"}
+        </button>
+
         <CardLabel>FRENTE</CardLabel>
 
         <div style={{ width: scaledW, height: scaledH, position: "relative", borderRadius: 8, boxShadow: "0 4px 20px rgba(0,0,0,0.15)", overflow: "hidden", flexShrink: 0 }}>

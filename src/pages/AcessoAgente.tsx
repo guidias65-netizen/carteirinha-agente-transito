@@ -68,7 +68,9 @@ export default function AcessoAgente() {
         }
         const canvas = document.createElement("canvas");
         canvas.width = w; canvas.height = h;
-        canvas.getContext("2d")!.drawImage(img, 0, 0, w, h);
+        const ctx = canvas.getContext("2d");
+        if (!ctx) { setErro("Seu navegador não suporta esta operação. Tente outro."); return; }
+        ctx.drawImage(img, 0, 0, w, h);
         setFotoBase64(canvas.toDataURL("image/jpeg", 0.92));
       };
       img.src = ev.target!.result as string;
@@ -89,10 +91,11 @@ export default function AcessoAgente() {
       if (res.ok) {
         setEtapa("aguardando");
       } else {
-        setErro("Erro ao enviar foto. Tente novamente.");
+        const body = await res.json().catch(() => ({})) as { error?: string };
+        setErro(`Erro ${res.status}: ${body.error ?? "Tente novamente."}`);
       }
-    } catch {
-      setErro("Erro de conexão. Tente novamente.");
+    } catch (e) {
+      setErro(`Erro de conexão: ${(e as Error).message ?? "Verifique sua internet."}`);
     } finally {
       setEnviando(false);
     }

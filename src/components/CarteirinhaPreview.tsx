@@ -140,7 +140,7 @@ export async function exportAgentPDF(agent: Agent): Promise<void> {
   pdf.text("EB 64535.090782/2024-91", authX, px2mm(s(180)), { baseline: "top" });
   pdf.text("EB 64285.005156/2024-04", authX, px2mm(s(193)), { baseline: "top" });
 
-  pdf.save(`carteirinha_${agent.nome.replace(/\s+/g, "_").toLowerCase()}.pdf`);
+  pdf.save(`funcional_${agent.nome.replace(/\s+/g, "_").toLowerCase()}.pdf`);
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -263,7 +263,7 @@ export function CarteirinhaPreview({ agent }: CarteirinhaPreviewProps) {
       pdf.text("EB 64535.090782/2024-91",         authX, px2mm(s(180)), { baseline: "top" });
       pdf.text("EB 64285.005156/2024-04",          authX, px2mm(s(193)), { baseline: "top" });
 
-      pdf.save(`carteirinha_${agent.nome.replace(/\s+/g, "_").toLowerCase()}.pdf`);
+      pdf.save(`funcional_${agent.nome.replace(/\s+/g, "_").toLowerCase()}.pdf`);
     } catch (err) {
       console.error("Erro ao gerar PDF:", err);
     } finally {

@@ -77,6 +77,73 @@ function formatCPF(value: string): string {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// Função exportada para uso externo (ex: MinhaCarteirinha)
+export async function exportAgentPDF(agent: Agent): Promise<void> {
+  const FIELD_PT = px2mm(7.5) * 2.835;
+  const NAME_PT  = px2mm(10)  * 2.835;
+  const AUTH_PT  = px2mm(8.5) * 2.835;
+
+  const pdf = new jsPDF({ orientation: "landscape", unit: "mm", format: [86, 54] });
+  const modelo = await loadImg("/modelo.png");
+
+  const fOrigH = Math.round(H / SCALE);
+  pdf.addImage(cropCanvas(modelo, 0, 0, IMG_W, fOrigH).toDataURL("image/jpeg", 1.0), "JPEG", 0, 0, 86, 54);
+
+  if (agent.foto) {
+    const photoImg = await loadImg(agent.foto);
+    const phW = s(140) * 3;
+    const phH = s(185) * 3;
+    pdf.addImage(coverCrop(photoImg, phW, phH).toDataURL("image/jpeg", 0.93), "JPEG",
+      px2mm(s(49)), px2mm(s(127)), px2mm(s(140)), px2mm(s(185)));
+  }
+
+  pdf.setFont("helvetica", "bold");
+  pdf.setFontSize(NAME_PT);
+  pdf.setTextColor(255, 255, 255);
+  if (agent.nome) pdf.text(agent.nome.toUpperCase(), px2mm(s(403)), px2mm(s(186)), { align: "center", baseline: "middle" });
+
+  pdf.setFont("helvetica", "bold");
+  pdf.setFontSize(px2mm(10) * 2.835);
+  pdf.setTextColor(255, 255, 255);
+  if (agent.funcional) pdf.text(`Nº ${agent.funcional}`, px2mm(s(119)), px2mm(s(334)), { align: "center", baseline: "middle" });
+
+  pdf.setFont("courier", "bold");
+  pdf.setFontSize(FIELD_PT);
+  pdf.setTextColor(17, 17, 17);
+  const fv = (v: string | undefined, ox: number, oy: number) => {
+    if (v) pdf.text(v, px2mm(s(ox)), px2mm(s(oy)), { baseline: "middle" });
+  };
+  fv(agent.matricula, 290, 226); fv(formatCPF(agent.cpf), 246, 239);
+  fv(agent.dataNascimento, 343, 252); fv(agent.tipoSanguineo, 316, 266);
+  fv(agent.nacionalidade, 313, 279); fv(agent.naturalidadeUf, 320, 292);
+  fv(agent.dataExpedicao, 312, 319); fv(agent.validade, 467, 319);
+
+  const qrDataUrl = await QRCode.toDataURL(buildConsultaUrl(agent), {
+    width: 300, margin: 1, errorCorrectionLevel: "L", color: { dark: "#000000", light: "#ffffff" },
+  });
+  const qrSize = px2mm(s(84));
+  pdf.addImage(qrDataUrl, "PNG", px2mm(s(521)) - qrSize / 2, px2mm(s(264)) - qrSize / 2, qrSize, qrSize);
+
+  pdf.addPage([86, 54], "landscape");
+  const bOrigH = IMG_H - BACK_Y_ORIG;
+  pdf.addImage(cropCanvas(modelo, 0, BACK_Y_ORIG, IMG_W, bOrigH).toDataURL("image/jpeg", 1.0), "JPEG", 0, 0, 86, 54);
+
+  pdf.setFont("courier", "bold");
+  pdf.setFontSize(FIELD_PT);
+  pdf.setTextColor(17, 17, 17);
+  fv(agent.equipamentoTipo, 121, 89); fv(agent.equipamentoMarca, 140, 104); fv(agent.equipamentoNrSerie, 173, 120);
+
+  pdf.setFont("courier", "bold");
+  pdf.setFontSize(AUTH_PT);
+  const authX = px2mm(s(72));
+  pdf.text("DIEX Nº 3050-SPRODAI/4 SCH/EME", authX, px2mm(s(167)), { baseline: "top" });
+  pdf.text("EB 64535.090782/2024-91", authX, px2mm(s(180)), { baseline: "top" });
+  pdf.text("EB 64285.005156/2024-04", authX, px2mm(s(193)), { baseline: "top" });
+
+  pdf.save(`carteirinha_${agent.nome.replace(/\s+/g, "_").toLowerCase()}.pdf`);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 export function CarteirinhaPreview({ agent }: CarteirinhaPreviewProps) {
   const frontRef = useRef<HTMLDivElement>(null);
   const backRef  = useRef<HTMLDivElement>(null);

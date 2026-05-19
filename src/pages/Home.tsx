@@ -53,7 +53,7 @@ export default function Home() {
             Agentes Cadastrados
           </h1>
           <p className="text-muted-foreground mt-1">
-            Gerencie os agentes de trânsito e emita suas carteirinhas funcionais.
+            Gerencie os agentes de trânsito e emita suas funcionais.
           </p>
         </div>
         <Link href="/novo">

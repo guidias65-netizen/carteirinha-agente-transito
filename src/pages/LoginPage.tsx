@@ -111,7 +111,7 @@ export default function LoginPage() {
             letterSpacing: "0.15em",
             textTransform: "uppercase",
           }}>
-            Sistema de Carteirinhas
+            Sistema de Funcionais
           </span>
         </div>
 

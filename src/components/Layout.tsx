@@ -1,5 +1,5 @@
 import { Link, useLocation } from "wouter";
-import { Shield, LogOut } from "lucide-react";
+import { LogOut } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 
 export function Layout({ children }: { children: React.ReactNode }) {
@@ -16,7 +16,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
       <header className="sticky top-0 z-30 w-full border-b bg-primary text-primary-foreground shadow-sm">
         <div className="container mx-auto px-4 h-16 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <Shield className="w-6 h-6 text-accent" />
+            <img src="/brasao-prefeitura.png" alt="Brasão de Sorocaba" className="h-9 w-auto object-contain" />
             <div className="flex flex-col">
               <h1 className="text-lg font-bold leading-tight">Secretaria de Mobilidade</h1>
               <span className="text-[10px] uppercase tracking-wider text-primary-foreground/80 font-semibold">

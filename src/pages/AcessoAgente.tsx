@@ -23,7 +23,7 @@ export default function AcessoAgente() {
       });
       if (res.ok) {
         const { id } = await res.json() as { id: string };
-        navigate(`/minha-carteirinha/${id}`);
+        navigate(`/minha-funcional/${id}`);
       } else {
         setErro("Matrícula ou CPF incorretos. Verifique e tente novamente.");
       }

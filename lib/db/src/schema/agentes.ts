@@ -15,6 +15,7 @@ export const agentesTable = pgTable("agentes", {
   dataExpedicao: text("data_expedicao").notNull().default(""),
   validade: text("validade").notNull().default(""),
   foto: text("foto").notNull().default(""),
+  fotoPendente: text("foto_pendente").notNull().default(""),
   equipamentoTipo: text("equipamento_tipo").notNull().default(""),
   equipamentoMarca: text("equipamento_marca").notNull().default(""),
   equipamentoNrSerie: text("equipamento_nr_serie").notNull().default(""),

@@ -16,6 +16,7 @@ export interface Agent {
   equipamentoMarca: string;
   equipamentoNrSerie: string;
   foto: string;
+  fotoPendente: string;
   criadoEm?: string;
 }
 

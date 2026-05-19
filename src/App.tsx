@@ -28,7 +28,7 @@ function Router() {
     <Switch>
       {/* Public routes — no auth needed */}
       <Route path="/consulta/:id" component={AgentPublicView} />
-      <Route path="/minha-carteirinha/:id" component={MinhaCarteirinha} />
+      <Route path="/minha-funcional/:id" component={MinhaCarteirinha} />
       <Route path="/acesso" component={AcessoAgente} />
       <Route path="/login">
         {loggedIn ? <Redirect to="/" /> : <LoginPage />}

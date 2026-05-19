@@ -64,7 +64,7 @@ export default function AcessoAgente() {
               Secretaria de Mobilidade
             </p>
             <p style={{ color: "#6b7280", fontSize: 12, margin: "4px 0 0" }}>
-              Acesse sua carteirinha funcional
+              Acesse sua funcional
             </p>
           </div>
           <div style={{ display: "flex", width: 100, height: 4, borderRadius: 2, overflow: "hidden", marginTop: 2 }}>
@@ -144,7 +144,7 @@ export default function AcessoAgente() {
               marginTop: 4,
             }}
           >
-            {carregando ? "Verificando..." : "Ver minha carteirinha"}
+            {carregando ? "Verificando..." : "Ver minha funcional"}
           </button>
         </form>
       </div>

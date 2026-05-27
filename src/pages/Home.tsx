@@ -22,6 +22,7 @@ export default function Home() {
   const [search, setSearch] = useState("");
   const { toast } = useToast();
   const [fotoModal, setFotoModal] = useState<Agent | null>(null);
+  const [confirmApagar, setConfirmApagar] = useState(false);
   const [processando, setProcessando] = useState(false);
 
   const filteredAgents = agents.filter(
@@ -67,6 +68,22 @@ export default function Home() {
       refetch();
     } catch {
       toast({ title: "Erro", description: "Não foi possível recusar a foto.", variant: "destructive" });
+    } finally {
+      setProcessando(false);
+    }
+  };
+
+  const handleApagar = async () => {
+    if (!fotoModal) return;
+    setProcessando(true);
+    try {
+      await fetch(`${API_BASE}/agentes/${fotoModal.id}/foto-apagar`, { method: "POST" });
+      toast({ title: "Foto apagada", description: `Foto de ${fotoModal.nome} foi removida. O agente precisará enviar uma nova.` });
+      setFotoModal(null);
+      setConfirmApagar(false);
+      refetch();
+    } catch {
+      toast({ title: "Erro", description: "Não foi possível apagar a foto.", variant: "destructive" });
     } finally {
       setProcessando(false);
     }
@@ -314,9 +331,53 @@ export default function Home() {
               </div>
             )}
             {!fotoModal.fotoPendente && (
-              <div style={{ padding: "0 24px 24px" }}>
+              <div style={{ padding: "0 24px 24px", display: "flex", flexDirection: "column", gap: 10 }}>
+                {fotoModal.foto && !confirmApagar && (
+                  <button
+                    onClick={() => setConfirmApagar(true)}
+                    style={{
+                      width: "100%", height: 44, borderRadius: 8,
+                      border: "1.5px solid #fecaca",
+                      background: "#fff5f5", color: "#b91c1c",
+                      fontWeight: 700, fontSize: 14, cursor: "pointer",
+                    }}
+                  >
+                    🗑 Apagar foto
+                  </button>
+                )}
+                {fotoModal.foto && confirmApagar && (
+                  <div style={{ background: "#fef2f2", border: "1px solid #fecaca", borderRadius: 8, padding: "12px 14px" }}>
+                    <p style={{ margin: "0 0 10px", fontSize: 13, color: "#7f1d1d", fontWeight: 600, textAlign: "center" }}>
+                      Tem certeza? O agente precisará enviar uma nova foto ao fazer login.
+                    </p>
+                    <div style={{ display: "flex", gap: 8 }}>
+                      <button
+                        onClick={() => setConfirmApagar(false)}
+                        disabled={processando}
+                        style={{
+                          flex: 1, height: 40, borderRadius: 8, border: "1.5px solid #e5e7eb",
+                          background: "#fff", color: "#374151", fontWeight: 700, fontSize: 13, cursor: "pointer",
+                        }}
+                      >
+                        Cancelar
+                      </button>
+                      <button
+                        onClick={handleApagar}
+                        disabled={processando}
+                        style={{
+                          flex: 1, height: 40, borderRadius: 8, border: "none",
+                          background: processando ? "#fecaca" : "#dc2626",
+                          color: "#fff", fontWeight: 700, fontSize: 13,
+                          cursor: processando ? "wait" : "pointer",
+                        }}
+                      >
+                        {processando ? "Apagando..." : "Confirmar exclusão"}
+                      </button>
+                    </div>
+                  </div>
+                )}
                 <button
-                  onClick={() => setFotoModal(null)}
+                  onClick={() => { setFotoModal(null); setConfirmApagar(false); }}
                   style={{
                     width: "100%", height: 44, borderRadius: 8, border: "1.5px solid #e5e7eb",
                     background: "#ffffff", color: "#374151",

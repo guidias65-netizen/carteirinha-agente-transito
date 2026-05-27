@@ -166,6 +166,22 @@ import express from 'express';
       }
     });
 
+  
+    // Apagar foto aprovada (admin)
+    app.post('/api/agentes/:id/foto-apagar', async (req, res) => {
+      try {
+        const { rows } = await pool.query(
+          "UPDATE agentes SET foto='', foto_pendente='' WHERE id=$1 RETURNING *",
+          [req.params.id]
+        );
+        if (!rows[0]) return res.status(404).json({ error: 'Agente não encontrado.' });
+        res.json(toApi(rows[0]));
+      } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: err.message });
+      }
+    });
+
     app.post('/api/agentes', async (req, res) => {
       try {
         const { rows: countRows } = await pool.query('SELECT COUNT(*) FROM agentes');

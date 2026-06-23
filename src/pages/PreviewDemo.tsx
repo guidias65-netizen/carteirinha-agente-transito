@@ -17,6 +17,7 @@ const DEMO_AGENT = {
   equipamentoMarca: "CONDOR",
   equipamentoNrSerie: "AAG20250104",
   foto: "",
+  fotoPendente: "",
 };
 
 export default function PreviewDemo() {

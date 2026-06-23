@@ -20,7 +20,7 @@ const COLUNAS = [
 ] as const;
 
 function getVal(agent: Agent, key: string): string {
-  return String((agent as Record<string, unknown>)[key] ?? "");
+  return String((agent as unknown as Record<string, unknown>)[key] ?? "");
 }
 
 function exportCSV(agents: Agent[]) {

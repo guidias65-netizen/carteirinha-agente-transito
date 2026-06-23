@@ -1,4 +1,4 @@
-import { Switch, Route, Router as WouterRouter, Redirect, useLocation } from "wouter";
+import { Switch, Route, Router as WouterRouter, Redirect } from "wouter";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -13,6 +13,7 @@ import AgentPublicView from "@/pages/AgentPublicView";
 import LoginPage from "@/pages/LoginPage";
 import AcessoAgente from "@/pages/AcessoAgente";
 import MinhaCarteirinha from "@/pages/MinhaCarteirinha";
+import AdminSettings from "@/pages/AdminSettings";
 
 const queryClient = new QueryClient();
 
@@ -46,6 +47,9 @@ function Router() {
       </Route>
       <Route path="/preview-demo">
         <ProtectedRoute component={PreviewDemo} />
+      </Route>
+      <Route path="/admin">
+        <ProtectedRoute component={AdminSettings} />
       </Route>
 
       <Route component={NotFound} />

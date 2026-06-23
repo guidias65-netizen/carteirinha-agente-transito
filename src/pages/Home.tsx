@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useAgents, type Agent } from "@/hooks/use-agents";
+import { useAuth } from "@/context/AuthContext";
 import { Layout } from "@/components/Layout";
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
@@ -12,18 +13,24 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Plus, Search, Edit, Trash2, RefreshCw, Camera } from "lucide-react";
+import { Plus, Search, Edit, Trash2, RefreshCw, Camera, Download, Settings } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { ExportModal } from "@/components/ExportModal";
 
 const API_BASE = (import.meta.env.VITE_API_URL ?? "/api") as string;
 
 export default function Home() {
   const { agents, deleteAgent, loading, error, refetch } = useAgents();
+  const { nivel, userName, logout } = useAuth();
   const [search, setSearch] = useState("");
   const { toast } = useToast();
   const [fotoModal, setFotoModal] = useState<Agent | null>(null);
   const [confirmApagar, setConfirmApagar] = useState(false);
   const [processando, setProcessando] = useState(false);
+  const [showExport, setShowExport] = useState(false);
+
+  const isOperador = nivel === "operador";
+  const isSuperAdmin = nivel === "super_admin";
 
   const filteredAgents = agents.filter(
     (a) =>
@@ -139,14 +146,39 @@ export default function Home() {
           </h1>
           <p className="text-muted-foreground mt-1">
             Gerencie os agentes de trânsito e emita suas funcionais.
+            {userName && <span className="ml-2 text-xs">· {userName}</span>}
           </p>
         </div>
-        <Link href="/novo">
-          <Button className="bg-accent text-accent-foreground hover:bg-accent/90 font-medium">
-            <Plus className="w-4 h-4 mr-2" />
-            Novo Agente
+        <div className="flex items-center gap-2 flex-wrap">
+          <Button
+            variant="outline"
+            onClick={() => setShowExport(true)}
+            className="gap-2"
+            disabled={agents.length === 0}
+          >
+            <Download className="w-4 h-4" />
+            Exportar
           </Button>
-        </Link>
+          {isSuperAdmin && (
+            <Link href="/admin">
+              <Button variant="outline" className="gap-2">
+                <Settings className="w-4 h-4" />
+                Admin
+              </Button>
+            </Link>
+          )}
+          {!isOperador && (
+            <Link href="/novo">
+              <Button className="bg-accent text-accent-foreground hover:bg-accent/90 font-medium">
+                <Plus className="w-4 h-4 mr-2" />
+                Novo Agente
+              </Button>
+            </Link>
+          )}
+          <Button variant="ghost" size="sm" onClick={logout} className="text-muted-foreground hover:text-destructive text-xs">
+            Sair
+          </Button>
+        </div>
       </div>
 
       <div className="bg-card rounded-lg shadow-sm border mb-6 p-4 flex items-center gap-3">
@@ -162,6 +194,9 @@ export default function Home() {
         <Button variant="ghost" size="icon" onClick={refetch} title="Atualizar lista">
           <RefreshCw className="w-4 h-4" />
         </Button>
+        <span className="text-xs text-muted-foreground ml-auto whitespace-nowrap">
+          {filteredAgents.length} agente{filteredAgents.length !== 1 ? "s" : ""}
+        </span>
       </div>
 
       {error && (
@@ -211,23 +246,37 @@ export default function Home() {
                   </TableCell>
                   <TableCell className="text-right">
                     <div className="flex justify-end gap-2">
-                      <Link href={`/agente/${agent.id}`}>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="h-8 border-primary/20 hover:border-primary/50"
-                        >
-                          <Edit className="w-3.5 h-3.5 mr-1" /> Editar & Emitir
-                        </Button>
-                      </Link>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-8 text-destructive hover:text-destructive hover:bg-destructive/10"
-                        onClick={() => handleDelete(agent.id, agent.nome)}
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </Button>
+                      {!isOperador ? (
+                        <>
+                          <Link href={`/agente/${agent.id}`}>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="h-8 border-primary/20 hover:border-primary/50"
+                            >
+                              <Edit className="w-3.5 h-3.5 mr-1" /> Editar & Emitir
+                            </Button>
+                          </Link>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-8 text-destructive hover:text-destructive hover:bg-destructive/10"
+                            onClick={() => handleDelete(agent.id, agent.nome)}
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </Button>
+                        </>
+                      ) : (
+                        <Link href={`/agente/${agent.id}`}>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="h-8 border-primary/20 hover:border-primary/50"
+                          >
+                            Ver
+                          </Button>
+                        </Link>
+                      )}
                     </div>
                   </TableCell>
                 </TableRow>
@@ -236,6 +285,10 @@ export default function Home() {
           </TableBody>
         </Table>
       </div>
+
+      {showExport && (
+        <ExportModal agents={filteredAgents.length > 0 ? filteredAgents : agents} onClose={() => setShowExport(false)} />
+      )}
 
       {/* Modal de revisão de foto */}
       {fotoModal && (
@@ -252,7 +305,6 @@ export default function Home() {
             boxShadow: "0 20px 60px rgba(0,0,0,0.3)",
             width: "100%", maxWidth: 420, overflow: "hidden",
           }}>
-            {/* Cabeçalho do modal */}
             <div style={{ padding: "20px 24px 16px", borderBottom: "1px solid #f3f4f6" }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                 <div>
@@ -282,7 +334,6 @@ export default function Home() {
               )}
             </div>
 
-            {/* Foto */}
             <div style={{ padding: "20px 24px" }}>
               {(fotoModal.fotoPendente || fotoModal.foto) ? (
                 <img
@@ -300,7 +351,6 @@ export default function Home() {
               )}
             </div>
 
-            {/* Botões */}
             {fotoModal.fotoPendente && (
               <div style={{ padding: "0 24px 24px", display: "flex", gap: 10 }}>
                 <button

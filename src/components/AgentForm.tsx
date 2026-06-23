@@ -46,6 +46,7 @@ type AgentFormValues = z.infer<typeof agentSchema>;
 
 interface AgentFormProps {
   initialData?: Agent;
+  suggestedFuncional?: string;
   onSubmit: (data: Omit<Agent, "id" | "criadoEm">) => void | Promise<void>;
   onCancel: () => void;
   saving?: boolean;
@@ -77,7 +78,7 @@ function addFiveYears(dateStr: string): string {
   return `${dd}/${mm}/${year + 5}`;
 }
 
-export function AgentForm({ initialData, onSubmit, onCancel, saving = false }: AgentFormProps) {
+export function AgentForm({ initialData, suggestedFuncional, onSubmit, onCancel, saving = false }: AgentFormProps) {
   const [fotoBase64, setFotoBase64] = useState<string>(initialData?.foto || "");
 
   const form = useForm<AgentFormValues>({
@@ -85,7 +86,7 @@ export function AgentForm({ initialData, onSubmit, onCancel, saving = false }: A
     defaultValues: {
       nome: initialData?.nome || "",
       matricula: initialData?.matricula || "",
-      funcional: initialData?.funcional || "",
+      funcional: initialData?.funcional || suggestedFuncional || "",
       cpf: initialData?.cpf || "",
       dataNascimento: initialData?.dataNascimento || "",
       tipoSanguineo: (initialData?.tipoSanguineo as typeof TIPOS_SANGUINEOS[number]) || undefined,
@@ -200,20 +201,22 @@ export function AgentForm({ initialData, onSubmit, onCancel, saving = false }: A
                   )}
                 />
 
-                {initialData && (
-                  <FormField control={form.control} name="funcional"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Nº Funcional</FormLabel>
-                        <FormControl>
-                          <Input placeholder="000" {...field} inputMode="numeric" />
-                        </FormControl>
-                        <p className="text-xs text-muted-foreground">Editável — use para corrigir o número se necessário.</p>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                )}
+                <FormField control={form.control} name="funcional"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Nº Funcional</FormLabel>
+                      <FormControl>
+                        <Input placeholder="000" {...field} inputMode="numeric" />
+                      </FormControl>
+                      <p className="text-xs text-muted-foreground">
+                        {initialData
+                          ? "Editável — use para corrigir o número se necessário."
+                          : "Gerado automaticamente. Altere se necessário."}
+                      </p>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
 
                 <FormField control={form.control} name="cpf"
                   render={({ field }) => (

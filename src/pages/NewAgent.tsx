@@ -6,15 +6,24 @@ import { useLocation } from "wouter";
 import { useToast } from "@/hooks/use-toast";
 
 export default function NewAgent() {
-  const { addAgent } = useAgents();
+  const { addAgent, agents } = useAgents();
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const [saving, setSaving] = useState(false);
+
+  const nextFuncional = (() => {
+    const nums = agents
+      .map((a) => parseInt(a.funcional.replace(/\D/g, ""), 10))
+      .filter((n) => !isNaN(n));
+    const max = nums.length > 0 ? Math.max(...nums) : 0;
+    return String(max + 1).padStart(3, "0");
+  })();
 
   return (
     <Layout>
       <div className="max-w-4xl mx-auto">
         <AgentForm
+          suggestedFuncional={nextFuncional}
           onSubmit={async (data) => {
             setSaving(true);
             try {

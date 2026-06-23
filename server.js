@@ -1,4 +1,5 @@
 import express from 'express';
+    import { createHash, randomBytes } from 'crypto';
     import pg from 'pg';
     import cors from 'cors';
     import { join, dirname } from 'path';
@@ -46,6 +47,26 @@ import express from 'express';
         await pool.query(`
           ALTER TABLE agentes ADD COLUMN IF NOT EXISTS foto_pendente TEXT NOT NULL DEFAULT ''
         `);
+
+          // Tabela de usuários administradores
+          await pool.query(`
+            CREATE TABLE IF NOT EXISTS admin_usuarios (
+              id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+              login TEXT UNIQUE NOT NULL,
+              senha_hash TEXT NOT NULL,
+              nome TEXT NOT NULL DEFAULT '',
+              nivel TEXT NOT NULL DEFAULT 'admin',
+              ativo BOOLEAN NOT NULL DEFAULT TRUE,
+              criado_em TIMESTAMP NOT NULL DEFAULT NOW()
+            )
+          `);
+          // Seed do admin padrão (só se a tabela estiver vazia)
+          const { rows: adminSeed } = await pool.query('SELECT id FROM admin_usuarios WHERE login=$1', ['admin']);
+          if (adminSeed.length === 0) {
+            const salt = randomBytes(16).toString('hex');
+            const h = createHash('sha256').update(salt + 'mobilidade@2025').digest('hex');
+            await pool.query("INSERT INTO admin_usuarios (login, senha_hash, nome, nivel) VALUES ($1,$2,$3,$4)", ['admin', salt + ':' + h, 'Administrador', 'super_admin']);
+          }
         console.log('Banco de dados conectado e tabela pronta.');
       } catch (err) {
         console.error('Erro ao conectar ao banco de dados:', err.message);
@@ -55,6 +76,106 @@ import express from 'express';
 
     await initDb();
 
+      // ── Gerenciamento de sessão (in-memory) ─────────────────────────────────
+      const sessions = new Map();
+      const hashPwd = (salt, pwd) => createHash('sha256').update(salt + pwd).digest('hex');
+      const newSession = (userId, nivel, nome) => {
+        const t = randomBytes(32).toString('hex');
+        sessions.set(t, { userId, nivel, nome, exp: Date.now() + 8 * 3600 * 1000 });
+        return t;
+      };
+      const getSession = (t) => {
+        if (!t) return null;
+        const s = sessions.get(t);
+        if (!s || s.exp < Date.now()) { sessions.delete(t); return null; }
+        return s;
+      };
+      const requireAdmin = (req, res, next) => {
+        const s = getSession(req.headers.authorization?.split(' ')[1]);
+        if (!s) return res.status(401).json({ error: 'Não autorizado.' });
+        req.adminSession = s;
+        next();
+      };
+      // ────────────────────────────────────────────────────────────────────────
+
+
+      // ── Rotas de autenticação ─────────────────────────────────────────────────
+      app.post('/api/auth/login', async (req, res) => {
+        try {
+          const { login, senha } = req.body;
+          if (!login || !senha) return res.status(400).json({ error: 'Login e senha são obrigatórios.' });
+          const { rows } = await pool.query('SELECT * FROM admin_usuarios WHERE login=$1 AND ativo=TRUE', [login]);
+          if (!rows[0]) return res.status(401).json({ error: 'Credenciais inválidas.' });
+          const [salt, hash] = rows[0].senha_hash.split(':');
+          if (hashPwd(salt, senha) !== hash) return res.status(401).json({ error: 'Credenciais inválidas.' });
+          const token = newSession(rows[0].id, rows[0].nivel, rows[0].nome);
+          res.json({ token, nivel: rows[0].nivel, nome: rows[0].nome });
+        } catch (err) { res.status(500).json({ error: err.message }); }
+      });
+
+      app.post('/api/auth/alterar-senha', requireAdmin, async (req, res) => {
+        try {
+          const { senhaAtual, novaSenha } = req.body;
+          if (!senhaAtual || !novaSenha) return res.status(400).json({ error: 'Campos obrigatórios.' });
+          if (novaSenha.length < 6) return res.status(400).json({ error: 'Nova senha deve ter no mínimo 6 caracteres.' });
+          const { rows } = await pool.query('SELECT * FROM admin_usuarios WHERE id=$1', [req.adminSession.userId]);
+          const [salt, hash] = rows[0].senha_hash.split(':');
+          if (hashPwd(salt, senhaAtual) !== hash) return res.status(401).json({ error: 'Senha atual incorreta.' });
+          const ns = randomBytes(16).toString('hex');
+          await pool.query('UPDATE admin_usuarios SET senha_hash=$1 WHERE id=$2', [ns + ':' + hashPwd(ns, novaSenha), req.adminSession.userId]);
+          res.json({ ok: true });
+        } catch (err) { res.status(500).json({ error: err.message }); }
+      });
+
+      app.get('/api/auth/usuarios', requireAdmin, async (req, res) => {
+        try {
+          const { rows } = await pool.query('SELECT id, login, nome, nivel, criado_em FROM admin_usuarios WHERE ativo=TRUE ORDER BY criado_em');
+          res.json(rows);
+        } catch (err) { res.status(500).json({ error: err.message }); }
+      });
+
+      app.post('/api/auth/usuarios', requireAdmin, async (req, res) => {
+        try {
+          if (req.adminSession.nivel !== 'super_admin') return res.status(403).json({ error: 'Sem permissão.' });
+          const { login, senha, nome, nivel } = req.body;
+          if (!login || !senha) return res.status(400).json({ error: 'Login e senha são obrigatórios.' });
+          const salt = randomBytes(16).toString('hex');
+          const { rows } = await pool.query(
+            'INSERT INTO admin_usuarios (login, senha_hash, nome, nivel) VALUES ($1,$2,$3,$4) RETURNING id, login, nome, nivel, criado_em',
+            [login, salt + ':' + hashPwd(salt, senha), nome || '', nivel || 'admin']
+          );
+          res.status(201).json(rows[0]);
+        } catch (err) {
+          if (err.code === '23505') return res.status(409).json({ error: 'Login já está em uso.' });
+          res.status(500).json({ error: err.message });
+        }
+      });
+
+      app.put('/api/auth/usuarios/:id', requireAdmin, async (req, res) => {
+        try {
+          if (req.adminSession.nivel !== 'super_admin') return res.status(403).json({ error: 'Sem permissão.' });
+          const { nome, nivel, novaSenha } = req.body;
+          if (novaSenha) {
+            const salt = randomBytes(16).toString('hex');
+            await pool.query('UPDATE admin_usuarios SET nome=$1, nivel=$2, senha_hash=$3 WHERE id=$4', [nome || '', nivel, salt + ':' + hashPwd(salt, novaSenha), req.params.id]);
+          } else {
+            await pool.query('UPDATE admin_usuarios SET nome=$1, nivel=$2 WHERE id=$3', [nome || '', nivel, req.params.id]);
+          }
+          const { rows } = await pool.query('SELECT id, login, nome, nivel, criado_em FROM admin_usuarios WHERE id=$1', [req.params.id]);
+          res.json(rows[0]);
+        } catch (err) { res.status(500).json({ error: err.message }); }
+      });
+
+      app.delete('/api/auth/usuarios/:id', requireAdmin, async (req, res) => {
+        try {
+          if (req.adminSession.nivel !== 'super_admin') return res.status(403).json({ error: 'Sem permissão.' });
+          if (req.params.id === req.adminSession.userId) return res.status(400).json({ error: 'Não é possível remover seu próprio usuário.' });
+          await pool.query('UPDATE admin_usuarios SET ativo=FALSE WHERE id=$1', [req.params.id]);
+          res.status(204).send();
+        } catch (err) { res.status(500).json({ error: err.message }); }
+      });
+      // ────────────────────────────────────────────────────────────────────────
+  
     app.use(cors());
     app.use(express.json({ limit: '10mb' }));
     app.use(express.urlencoded({ extended: true, limit: '10mb' }));
@@ -196,6 +317,12 @@ import express from 'express';
           funcional = String(nextNum).padStart(3, '0');
         }
 
+
+        // Verificar unicidade do Nº Funcional
+        const { rows: dupPost } = await pool.query('SELECT id FROM agentes WHERE funcional=$1', [funcional]);
+        if (dupPost.length > 0) {
+          return res.status(409).json({ error: 'Nº Funcional ' + funcional + ' já está em uso. Escolha outro número.' });
+        }
         const { rows } = await pool.query(
           `INSERT INTO agentes (nome,matricula,funcional,cpf,data_nascimento,tipo_sanguineo,
             nacionalidade,naturalidade_uf,data_expedicao,validade,foto,foto_pendente,
@@ -216,6 +343,13 @@ import express from 'express';
     app.put('/api/agentes/:id', async (req, res) => {
       try {
         const b = req.body;
+        // Verificar unicidade do Nº Funcional (excluindo o próprio agente)
+        if (b.funcional) {
+          const { rows: dupPut } = await pool.query('SELECT id FROM agentes WHERE funcional=$1 AND id!=$2', [b.funcional, req.params.id]);
+          if (dupPut.length > 0) {
+            return res.status(409).json({ error: 'Nº Funcional ' + b.funcional + ' já está em uso por outro agente.' });
+          }
+        }
         const { rows } = await pool.query(
           `UPDATE agentes SET nome=$1,matricula=$2,funcional=$3,cpf=$4,data_nascimento=$5,
             tipo_sanguineo=$6,nacionalidade=$7,naturalidade_uf=$8,data_expedicao=$9,

@@ -184,11 +184,18 @@ import express from 'express';
 
     app.post('/api/agentes', async (req, res) => {
       try {
-        const { rows: countRows } = await pool.query('SELECT COUNT(*) FROM agentes');
-        const nextNum = parseInt(countRows[0].count, 10) + 1;
-        const funcional = String(nextNum).padStart(3, '0');
-
         const b = req.body;
+        let funcional;
+        if (b.funcional && b.funcional.trim()) {
+          funcional = b.funcional.trim();
+        } else {
+          const { rows: maxRows } = await pool.query(
+            "SELECT MAX(CAST(NULLIF(REGEXP_REPLACE(funcional, '[^0-9]', '', 'g'), '') AS INTEGER)) AS max FROM agentes"
+          );
+          const nextNum = parseInt(maxRows[0].max || '0', 10) + 1;
+          funcional = String(nextNum).padStart(3, '0');
+        }
+
         const { rows } = await pool.query(
           `INSERT INTO agentes (nome,matricula,funcional,cpf,data_nascimento,tipo_sanguineo,
             nacionalidade,naturalidade_uf,data_expedicao,validade,foto,foto_pendente,
@@ -210,11 +217,11 @@ import express from 'express';
       try {
         const b = req.body;
         const { rows } = await pool.query(
-          `UPDATE agentes SET nome=$1,matricula=$2,cpf=$3,data_nascimento=$4,
-            tipo_sanguineo=$5,nacionalidade=$6,naturalidade_uf=$7,data_expedicao=$8,
-            validade=$9,foto=$10,equipamento_tipo=$11,equipamento_marca=$12,
-            equipamento_nr_serie=$13 WHERE id=$14 RETURNING *`,
-          [b.nome, b.matricula||'', b.cpf||'', b.dataNascimento||'',
+          `UPDATE agentes SET nome=$1,matricula=$2,funcional=$3,cpf=$4,data_nascimento=$5,
+            tipo_sanguineo=$6,nacionalidade=$7,naturalidade_uf=$8,data_expedicao=$9,
+            validade=$10,foto=$11,equipamento_tipo=$12,equipamento_marca=$13,
+            equipamento_nr_serie=$14 WHERE id=$15 RETURNING *`,
+          [b.nome, b.matricula||'', b.funcional||'', b.cpf||'', b.dataNascimento||'',
            b.tipoSanguineo||'', b.nacionalidade||'', b.naturalidadeUf||'',
            b.dataExpedicao||'', b.validade||'', b.foto||'',
            b.equipamentoTipo||'', b.equipamentoMarca||'', b.equipamentoNrSerie||'',

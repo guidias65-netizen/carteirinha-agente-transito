@@ -7,26 +7,42 @@ interface ExportModalProps {
   onClose: () => void;
 }
 
-const COLUNAS = [
-  { key: "matricula", label: "Matrícula", w: 22 },
-  { key: "nome", label: "Nome", w: 58 },
-  { key: "funcional", label: "Funcional", w: 20 },
-  { key: "cpf", label: "CPF", w: 30 },
-  { key: "tipoSanguineo", label: "Sangue", w: 14 },
-  { key: "dataNascimento", label: "Dt. Nascimento", w: 24 },
-  { key: "naturalidadeUf", label: "Naturalidade", w: 34 },
-  { key: "equipamentoNrSerie", label: "Nº Série", w: 26 },
-  { key: "equipamentoMarca", label: "Marca Arma", w: 26 },
+// Colunas do CSV (sem foto — Excel não incorpora imagem via CSV)
+const COLUNAS_CSV = [
+  { key: "matricula", label: "Matrícula" },
+  { key: "nome", label: "Nome" },
+  { key: "funcional", label: "Nº Funcional" },
+  { key: "cpf", label: "CPF" },
+  { key: "tipoSanguineo", label: "Tipo Sanguíneo" },
+  { key: "dataNascimento", label: "Dt. Nascimento" },
+  { key: "naturalidadeUf", label: "Naturalidade" },
+  { key: "equipamentoNrSerie", label: "Nº Série Arma" },
+  { key: "equipamentoMarca", label: "Marca Arma" },
+] as const;
+
+// Colunas do PDF (foto incluída entre matrícula e nome)
+const COLUNAS_PDF = [
+  { key: "matricula",          label: "Matrícula",      w: 22, isPhoto: false },
+  { key: "foto",               label: "Foto",           w: 22, isPhoto: true  },
+  { key: "nome",               label: "Nome",           w: 52, isPhoto: false },
+  { key: "funcional",          label: "Funcional",      w: 20, isPhoto: false },
+  { key: "cpf",                label: "CPF",            w: 30, isPhoto: false },
+  { key: "tipoSanguineo",      label: "Sangue",         w: 13, isPhoto: false },
+  { key: "dataNascimento",     label: "Dt. Nascimento", w: 24, isPhoto: false },
+  { key: "naturalidadeUf",     label: "Naturalidade",   w: 32, isPhoto: false },
+  { key: "equipamentoNrSerie", label: "Nº Série",       w: 26, isPhoto: false },
+  { key: "equipamentoMarca",   label: "Marca Arma",     w: 32, isPhoto: false },
 ] as const;
 
 function getVal(agent: Agent, key: string): string {
   return String((agent as unknown as Record<string, unknown>)[key] ?? "");
 }
 
+// ─── CSV ─────────────────────────────────────────────────────────────────────
 function exportCSV(agents: Agent[]) {
-  const header = COLUNAS.map((c) => `"${c.label}"`).join(";");
+  const header = COLUNAS_CSV.map((c) => `"${c.label}"`).join(";");
   const rows = agents.map((a) =>
-    COLUNAS.map((c) => `"${getVal(a, c.key).replace(/"/g, '""')}"`).join(";"),
+    COLUNAS_CSV.map((c) => `"${getVal(a, c.key).replace(/"/g, '""')}"`).join(";"),
   );
   const bom = "\uFEFF";
   const csv = bom + [header, ...rows].join("\r\n");
@@ -39,75 +55,107 @@ function exportCSV(agents: Agent[]) {
   URL.revokeObjectURL(url);
 }
 
+// ─── PDF ─────────────────────────────────────────────────────────────────────
+const ROW_H = 22; // mm — altura da linha (acomoda foto)
+const HEADER_H = 8;
+
 function exportPDF(agents: Agent[]) {
   const doc = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
-  const totalW = COLUNAS.reduce((s, c) => s + c.w, 0);
-  const startX = 14;
-  const rowH = 6.5;
-  const headerH = 8;
+  const totalW = COLUNAS_PDF.reduce((s, c) => s + c.w, 0);
+  const startX = 10;
 
-  const drawRow = (values: string[], y: number, height: number, isHeader = false, even = false) => {
-    let x = startX;
-    if (isHeader) {
-      doc.setFillColor(30, 30, 30);
-      doc.rect(startX, y, totalW, height, "F");
-    } else if (even) {
-      doc.setFillColor(247, 248, 250);
-      doc.rect(startX, y, totalW, height, "F");
-    }
-    COLUNAS.forEach((col, i) => {
-      doc.setFontSize(isHeader ? 7 : 6.5);
-      doc.setFont("helvetica", isHeader ? "bold" : "normal");
-      doc.setTextColor(isHeader ? 255 : 30, isHeader ? 255 : 30, isHeader ? 255 : 30);
-      const maxChars = Math.floor((col.w - 2) / (isHeader ? 1.8 : 1.7));
-      const text = values[i].length > maxChars ? values[i].slice(0, maxChars - 1) + "…" : values[i];
-      doc.text(text, x + 1.5, y + height - 2.2);
-      x += col.w;
-    });
-    doc.setDrawColor(220, 220, 220);
-    doc.setLineWidth(0.2);
-    doc.line(startX, y + height, startX + totalW, y + height);
-  };
-
+  // Cabeçalho do documento
   doc.setFontSize(13);
   doc.setFont("helvetica", "bold");
   doc.setTextColor(30, 30, 30);
-  doc.text("SEMOB Sorocaba — Relação de Agentes de Trânsito", startX, 14);
+  doc.text("SEMOB Sorocaba — Relação de Agentes de Trânsito", startX, 12);
   doc.setFontSize(8.5);
   doc.setFont("helvetica", "normal");
   doc.setTextColor(100, 100, 100);
   doc.text(
     `Gerado em ${new Date().toLocaleDateString("pt-BR")}   ·   Total: ${agents.length} agentes`,
     startX,
-    21,
+    18,
   );
 
-  let y = 27;
-  drawRow(COLUNAS.map((c) => c.label), y, headerH, true);
-  y += headerH;
+  // Linha de cabeçalho da tabela
+  const drawHeaderRow = (y: number) => {
+    doc.setFillColor(30, 30, 30);
+    doc.rect(startX, y, totalW, HEADER_H, "F");
+    let x = startX;
+    doc.setFontSize(7);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(255, 255, 255);
+    for (const col of COLUNAS_PDF) {
+      doc.text(col.label, x + 1.5, y + HEADER_H - 2.5);
+      x += col.w;
+    }
+  };
+
+  // Linha de dados
+  const drawDataRow = (agent: Agent, y: number, even: boolean) => {
+    // Fundo alternado
+    if (even) {
+      doc.setFillColor(247, 248, 250);
+      doc.rect(startX, y, totalW, ROW_H, "F");
+    }
+
+    let x = startX;
+    for (const col of COLUNAS_PDF) {
+      if (col.isPhoto) {
+        // Desenhar foto
+        const photoSrc = getVal(agent, "foto");
+        if (photoSrc) {
+          try {
+            // Detectar formato da imagem a partir do data URL
+            const fmt = photoSrc.startsWith("data:image/png") ? "PNG" : "JPEG";
+            const photoW = col.w - 2;
+            const photoH = ROW_H - 2;
+            doc.addImage(photoSrc, fmt, x + 1, y + 1, photoW, photoH);
+          } catch {
+            // Foto inválida — deixar célula vazia
+          }
+        }
+      } else {
+        const val = getVal(agent, col.key);
+        const maxChars = Math.floor((col.w - 2) / 1.65);
+        const text = val.length > maxChars ? val.slice(0, maxChars - 1) + "…" : val;
+        doc.setFontSize(6.5);
+        doc.setFont("helvetica", "normal");
+        doc.setTextColor(30, 30, 30);
+        // Texto centralizado verticalmente na linha
+        doc.text(text, x + 1.5, y + ROW_H / 2 + 2);
+      }
+      x += col.w;
+    }
+
+    // Linha separadora
+    doc.setDrawColor(210, 210, 210);
+    doc.setLineWidth(0.2);
+    doc.line(startX, y + ROW_H, startX + totalW, y + ROW_H);
+  };
+
+  let y = 24;
+  drawHeaderRow(y);
+  y += HEADER_H;
 
   agents.forEach((agent, idx) => {
-    if (y > 188) {
+    if (y + ROW_H > 200) {
       doc.addPage();
-      y = 14;
-      drawRow(COLUNAS.map((c) => c.label), y, headerH, true);
-      y += headerH;
+      y = 10;
+      drawHeaderRow(y);
+      y += HEADER_H;
     }
-    drawRow(
-      COLUNAS.map((c) => getVal(agent, c.key)),
-      y,
-      rowH,
-      false,
-      idx % 2 === 0,
-    );
-    y += rowH;
+    drawDataRow(agent, y, idx % 2 === 0);
+    y += ROW_H;
   });
 
   doc.save(`agentes_semob_${new Date().toISOString().slice(0, 10)}.pdf`);
 }
 
+// ─── Modal ────────────────────────────────────────────────────────────────────
 export function ExportModal({ agents, onClose }: ExportModalProps) {
-  const [formato, setFormato] = useState<"csv" | "pdf">("csv");
+  const [formato, setFormato] = useState<"csv" | "pdf">("pdf");
   const [exportando, setExportando] = useState(false);
 
   const handleExport = () => {
@@ -137,13 +185,14 @@ export function ExportModal({ agents, onClose }: ExportModalProps) {
       <div style={{
         background: "#fff", borderRadius: 12,
         boxShadow: "0 20px 60px rgba(0,0,0,0.3)",
-        width: "100%", maxWidth: 390, overflow: "hidden",
+        width: "100%", maxWidth: 400, overflow: "hidden",
       }}>
+        {/* Header */}
         <div style={{ padding: "20px 24px 16px", borderBottom: "1px solid #f3f4f6", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <div>
             <p style={{ fontWeight: 800, fontSize: 15, color: "#111827", margin: 0 }}>Exportar Cadastros</p>
             <p style={{ fontSize: 12, color: "#6b7280", margin: "2px 0 0" }}>
-              {agents.length} agentes · {new Date().toLocaleDateString("pt-BR")}
+              {agents.length} agente{agents.length !== 1 ? "s" : ""} · {new Date().toLocaleDateString("pt-BR")}
             </p>
           </div>
           <button
@@ -152,38 +201,42 @@ export function ExportModal({ agents, onClose }: ExportModalProps) {
           >×</button>
         </div>
 
+        {/* Body */}
         <div style={{ padding: "20px 24px 24px" }}>
           <p style={{ fontSize: 11.5, color: "#374151", fontWeight: 700, marginBottom: 6, marginTop: 0 }}>Colunas exportadas:</p>
-          <p style={{ fontSize: 11, color: "#6b7280", margin: "0 0 20px", lineHeight: 1.7 }}>
-            Matrícula · Nome · Nº Funcional · CPF · Tipo Sanguíneo ·<br />
-            Data de Nascimento · Naturalidade · Nº de Série · Marca da Arma
-          </p>
+
+          {/* PDF columns (with photo) */}
+          <div style={{ marginBottom: 18 }}>
+            <p style={{ fontSize: 10.5, color: "#6b7280", margin: "0 0 4px", lineHeight: 1.8 }}>
+              <span style={{ background: "#f0f9ff", color: "#0369a1", padding: "1px 6px", borderRadius: 4, fontSize: 10, fontWeight: 700, marginRight: 4 }}>PDF</span>
+              Matrícula · <strong>Foto</strong> · Nome · Funcional · CPF · Sangue · Dt. Nascimento · Naturalidade · Nº Série · Marca
+            </p>
+            <p style={{ fontSize: 10.5, color: "#6b7280", margin: 0, lineHeight: 1.8 }}>
+              <span style={{ background: "#f0fdf4", color: "#16a34a", padding: "1px 6px", borderRadius: 4, fontSize: 10, fontWeight: 700, marginRight: 4 }}>Excel</span>
+              Matrícula · Nome · Funcional · CPF · Sangue · Dt. Nascimento · Naturalidade · Nº Série · Marca
+              <span style={{ fontSize: 10, color: "#9ca3af", display: "block", marginTop: 2 }}>* Fotos não são suportadas no formato CSV/Excel</span>
+            </p>
+          </div>
 
           <p style={{ fontSize: 11.5, color: "#374151", fontWeight: 700, marginBottom: 10 }}>Formato:</p>
-          <div style={{ display: "flex", gap: 10, marginBottom: 14 }}>
-            {(["csv", "pdf"] as const).map((f) => (
+          <div style={{ display: "flex", gap: 10, marginBottom: 22 }}>
+            {(["pdf", "csv"] as const).map((f) => (
               <button
                 key={f}
                 onClick={() => setFormato(f)}
                 style={{
-                  flex: 1, height: 46, borderRadius: 8, cursor: "pointer",
-                  border: formato === f ? "2px solid #111827" : "1.5px solid #e5e7eb",
+                  flex: 1, height: 48, borderRadius: 8, cursor: "pointer",
+                  border: formato === f ? "2.5px solid #111827" : "1.5px solid #e5e7eb",
                   background: formato === f ? "#111827" : "#fff",
                   color: formato === f ? "#fff" : "#374151",
                   fontWeight: 700, fontSize: 13,
                   transition: "all 0.15s",
                 }}
               >
-                {f === "csv" ? "📊 Excel (CSV)" : "📄 PDF"}
+                {f === "pdf" ? "📄 PDF (com foto)" : "📊 Excel (CSV)"}
               </button>
             ))}
           </div>
-
-          <p style={{ fontSize: 11, color: "#6b7280", margin: "0 0 20px", lineHeight: 1.5 }}>
-            {formato === "csv"
-              ? "Arquivo .csv — abre diretamente no Excel com acentos corretos."
-              : "Arquivo PDF em paisagem (A4) com tabela de todos os agentes."}
-          </p>
 
           <button
             onClick={handleExport}
@@ -196,7 +249,7 @@ export function ExportModal({ agents, onClose }: ExportModalProps) {
               transition: "background 0.2s",
             }}
           >
-            {exportando ? "Gerando arquivo..." : `⬇  Baixar ${formato === "csv" ? "Excel (CSV)" : "PDF"}`}
+            {exportando ? "Gerando arquivo..." : `⬇  Baixar ${formato === "pdf" ? "PDF (com foto)" : "Excel (CSV)"}`}
           </button>
         </div>
       </div>

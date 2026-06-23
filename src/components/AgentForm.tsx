@@ -29,6 +29,7 @@ const TIPOS_SANGUINEOS = ["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"] as c
 const agentSchema = z.object({
   nome: z.string().min(3, "Nome muito curto"),
   matricula: z.string().min(1, "Obrigatório"),
+  funcional: z.string().optional(),
   cpf: z.string().min(14, "CPF inválido").max(14, "CPF inválido"),
   dataNascimento: z.string().min(10, "Data inválida"),
   tipoSanguineo: z.enum(TIPOS_SANGUINEOS, { errorMap: () => ({ message: "Selecione o tipo sanguíneo" }) }),
@@ -84,6 +85,7 @@ export function AgentForm({ initialData, onSubmit, onCancel, saving = false }: A
     defaultValues: {
       nome: initialData?.nome || "",
       matricula: initialData?.matricula || "",
+      funcional: initialData?.funcional || "",
       cpf: initialData?.cpf || "",
       dataNascimento: initialData?.dataNascimento || "",
       tipoSanguineo: (initialData?.tipoSanguineo as typeof TIPOS_SANGUINEOS[number]) || undefined,
@@ -126,7 +128,9 @@ export function AgentForm({ initialData, onSubmit, onCancel, saving = false }: A
   const handleSubmit = (values: AgentFormValues) => {
     onSubmit({
       ...values,
+      funcional: values.funcional || "",
       foto: fotoBase64,
+      fotoPendente: initialData?.fotoPendente ?? "",
       equipamentoTipo: values.equipamentoTipo || "",
       equipamentoMarca: values.equipamentoMarca || "",
       equipamentoNrSerie: values.equipamentoNrSerie || "",
@@ -196,14 +200,19 @@ export function AgentForm({ initialData, onSubmit, onCancel, saving = false }: A
                   )}
                 />
 
-                {initialData?.funcional && (
-                  <div className="flex flex-col gap-1.5">
-                    <Label className="text-sm font-medium">Nº Funcional</Label>
-                    <div className="flex h-9 w-full rounded-md border border-input bg-muted/60 px-3 py-2 text-sm text-muted-foreground items-center">
-                      {initialData.funcional}
-                    </div>
-                    <p className="text-xs text-muted-foreground">Gerado automaticamente pelo sistema.</p>
-                  </div>
+                {initialData && (
+                  <FormField control={form.control} name="funcional"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Nº Funcional</FormLabel>
+                        <FormControl>
+                          <Input placeholder="000" {...field} inputMode="numeric" />
+                        </FormControl>
+                        <p className="text-xs text-muted-foreground">Editável — use para corrigir o número se necessário.</p>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
                 )}
 
                 <FormField control={form.control} name="cpf"

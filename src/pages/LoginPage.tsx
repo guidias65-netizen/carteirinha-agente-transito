@@ -10,19 +10,22 @@ export default function LoginPage() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
-  function handleSubmit(e: FormEvent) {
+  async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     setError("");
     setLoading(true);
-    setTimeout(() => {
-      const ok = login(user.trim(), pass);
+    try {
+      const ok = await login(user.trim(), pass);
       if (ok) {
         navigate("/");
       } else {
         setError("Usuário ou senha incorretos.");
       }
+    } catch {
+      setError("Erro de conexão. Tente novamente.");
+    } finally {
       setLoading(false);
-    }, 400);
+    }
   }
 
   return (

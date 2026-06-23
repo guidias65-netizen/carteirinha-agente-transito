@@ -21,6 +21,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [nivel, setNivel] = useState<string>(() => sessionStorage.getItem(NIVEL_KEY) || "");
   const [userName, setUserName] = useState<string>(() => sessionStorage.getItem(NOME_KEY) || "");
 
+  const applySession = useCallback((token: string, nivel: string, nome: string) => {
+    sessionStorage.setItem(TOKEN_KEY, token);
+    sessionStorage.setItem(NIVEL_KEY, nivel);
+    sessionStorage.setItem(NOME_KEY, nome);
+    setToken(token);
+    setNivel(nivel);
+    setUserName(nome);
+  }, []);
+
   const login = useCallback(async (user: string, pass: string): Promise<boolean> => {
     try {
       const res = await fetch(`${API_BASE}/auth/login`, {
@@ -28,19 +37,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ login: user, senha: pass }),
       });
-      if (!res.ok) return false;
-      const data = await res.json();
-      sessionStorage.setItem(TOKEN_KEY, data.token);
-      sessionStorage.setItem(NIVEL_KEY, data.nivel);
-      sessionStorage.setItem(NOME_KEY, data.nome || "");
-      setToken(data.token);
-      setNivel(data.nivel);
-      setUserName(data.nome || "");
-      return true;
+      if (res.ok) {
+        const data = await res.json();
+        applySession(data.token, data.nivel, data.nome || "");
+        return true;
+      }
+      // 401 = senha errada no servidor real → não faz fallback
+      if (res.status === 401) return false;
+      // 404 / erro = endpoint ausente (servidor de dev sem módulo de auth)
+      // → usa credencial padrão local
     } catch {
-      return false;
+      // Servidor indisponível ou erro de rede → usa credencial padrão local
     }
-  }, []);
+    // Fallback para ambiente de desenvolvimento (sem endpoint de auth)
+    if (user === "admin" && pass === "mobilidade@2025") {
+      applySession("dev_local", "super_admin", "Administrador");
+      return true;
+    }
+    return false;
+  }, [applySession]);
 
   const logout = useCallback(() => {
     sessionStorage.removeItem(TOKEN_KEY);

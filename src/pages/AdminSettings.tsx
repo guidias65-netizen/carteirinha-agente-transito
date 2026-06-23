@@ -46,6 +46,13 @@ export default function AdminSettings() {
 
   const authHeader = { "Content-Type": "application/json", Authorization: `Bearer ${token}` };
 
+  // Parseia JSON com segurança — evita quebrar se o servidor retornar HTML (ex: 404 do dev)
+  const safeJson = async (res: Response): Promise<Record<string, string>> => {
+    try { return await res.json(); } catch { return {}; }
+  };
+
+  const devMsg = "Disponível apenas no servidor de produção (funcional.semob.com.br).";
+
   const carregarUsuarios = async () => {
     if (nivel !== "super_admin") return;
     setCarregandoUsers(true);
@@ -53,7 +60,10 @@ export default function AdminSettings() {
       const res = await fetch(`${API_BASE}/auth/usuarios`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      if (res.ok) setUsuarios(await res.json());
+      if (res.ok) {
+        const data = await safeJson(res);
+        if (Array.isArray(data)) setUsuarios(data as unknown as AdminUser[]);
+      }
     } finally {
       setCarregandoUsers(false);
     }
@@ -81,8 +91,8 @@ export default function AdminSettings() {
         toast({ title: "Senha alterada!", description: "Sua senha foi atualizada com sucesso." });
         setSenhaAtual(""); setNovaSenha(""); setConfirmarSenha("");
       } else {
-        const d = await res.json();
-        toast({ title: "Erro", description: d.error || "Não foi possível alterar a senha.", variant: "destructive" });
+        const d = await safeJson(res);
+        toast({ title: "Erro", description: d.error || devMsg, variant: "destructive" });
       }
     } finally {
       setSalvandoSenha(false);
@@ -103,8 +113,8 @@ export default function AdminSettings() {
         setShowNovoForm(false);
         carregarUsuarios();
       } else {
-        const d = await res.json();
-        toast({ title: "Erro", description: d.error || "Não foi possível criar o usuário.", variant: "destructive" });
+        const d = await safeJson(res);
+        toast({ title: "Erro", description: d.error || devMsg, variant: "destructive" });
       }
     } finally {
       setCriandoUser(false);
@@ -116,12 +126,12 @@ export default function AdminSettings() {
     const res = await fetch(`${API_BASE}/auth/usuarios/${user.id}`, {
       method: "DELETE", headers: { Authorization: `Bearer ${token}` },
     });
-    if (res.ok) {
+    if (res.ok || res.status === 204) {
       toast({ title: "Usuário excluído." });
       carregarUsuarios();
     } else {
-      const d = await res.json();
-      toast({ title: "Erro", description: d.error, variant: "destructive" });
+      const d = await safeJson(res);
+      toast({ title: "Erro", description: d.error || devMsg, variant: "destructive" });
     }
   };
 

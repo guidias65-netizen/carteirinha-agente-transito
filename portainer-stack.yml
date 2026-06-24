@@ -1,0 +1,29 @@
+# Stack Portainer — PRODUCAO
+  # Cole este conteudo em Stacks > Add stack > Web editor
+  # Configure as variaveis em Environment variables no Portainer
+  version: "3.9"
+
+  services:
+    app:
+      image: jhonyti/carteirinha:1.2.1
+      container_name: carteirinha_app
+      restart: unless-stopped
+      environment:
+        # Opcao 1: variaveis separadas (recomendado)
+        DB_HOST: "${DB_HOST}"
+        DB_PORT: "${DB_PORT:-5432}"
+        DB_NAME: "${DB_NAME}"
+        DB_USER: "${DB_USER}"
+        DB_PASSWORD: "${DB_PASSWORD}"
+        DB_SSL: "${DB_SSL:-false}"
+        PORT: "${PORT:-3300}"
+        NODE_ENV: "${NODE_ENV:-production}"
+        # Opcao 2: DATABASE_URL (alternativa — comente as DB_* acima e descomente abaixo)
+        # DATABASE_URL: "${DATABASE_URL}"
+      networks:
+        - intranet
+
+  networks:
+    intranet:
+      external: true
+  

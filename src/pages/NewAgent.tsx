@@ -6,18 +6,30 @@ import { useLocation } from "wouter";
 import { useToast } from "@/hooks/use-toast";
 
 export default function NewAgent() {
-  const { addAgent, agents } = useAgents();
+  const { addAgent, agents, loading } = useAgents();
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const [saving, setSaving] = useState(false);
 
+  // Calcula o próximo funcional só após os agentes carregarem do servidor
   const nextFuncional = (() => {
+    if (loading) return "";
     const nums = agents
       .map((a) => parseInt(a.funcional.replace(/\D/g, ""), 10))
       .filter((n) => !isNaN(n));
     const max = nums.length > 0 ? Math.max(...nums) : 0;
     return String(max + 1).padStart(3, "0");
   })();
+
+  if (loading) {
+    return (
+      <Layout>
+        <div className="flex items-center justify-center h-48 text-muted-foreground">
+          Carregando...
+        </div>
+      </Layout>
+    );
+  }
 
   return (
     <Layout>

@@ -1,5 +1,5 @@
 import express from 'express';
-  import { createHash, randomBytes } from 'crypto';
+  import { createHash, randomBytes, randomUUID } from 'crypto';
   import pg from 'pg';
   import cors from 'cors';
   import { join, dirname } from 'path';
@@ -52,6 +52,7 @@ import express from 'express';
   // ── initDb ──────────────────────────────────────────────────────────────────
   async function initDb() {
     try {
+      await pool.query('CREATE EXTENSION IF NOT EXISTS "pgcrypto"').catch(() => {});
       await pool.query(`
         CREATE TABLE IF NOT EXISTS agentes (
           id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -294,9 +295,9 @@ import express from 'express';
       const dupPost = await pool.query('SELECT id FROM agentes WHERE funcional=$1 AND funcional<>$2', [funcional || '', '']);
       if (dupPost.rows.length > 0) return res.status(409).json({ error: 'Já existe um agente com esse número funcional.' });
       const { rows } = await pool.query(
-        `INSERT INTO agentes (nome, matricula, funcional, cpf, data_nascimento, tipo_sanguineo, nacionalidade, naturalidade_uf, data_expedicao, validade, foto, equipamento_tipo, equipamento_marca, equipamento_nr_serie)
-         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14) RETURNING *`,
-        [nome, matricula || '', funcional || '', cpf || '', dataNascimento || '', tipoSanguineo || '', nacionalidade || '', naturalidadeUf || '', dataExpedicao || '', validade || '', foto || '', equipamentoTipo || '', equipamentoMarca || '', equipamentoNrSerie || '']
+        `INSERT INTO agentes (id, nome, matricula, funcional, cpf, data_nascimento, tipo_sanguineo, nacionalidade, naturalidade_uf, data_expedicao, validade, foto, equipamento_tipo, equipamento_marca, equipamento_nr_serie)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15) RETURNING *`,
+        [randomUUID(), nome, matricula || '', funcional || '', cpf || '', dataNascimento || '', tipoSanguineo || '', nacionalidade || '', naturalidadeUf || '', dataExpedicao || '', validade || '', foto || '', equipamentoTipo || '', equipamentoMarca || '', equipamentoNrSerie || '']
       );
       res.status(201).json(toApi(rows[0]));
     } catch (err) { res.status(500).json({ error: err.message }); }

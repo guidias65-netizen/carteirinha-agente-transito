@@ -291,7 +291,7 @@ import express from 'express';
     try {
       const { nome, matricula, funcional, cpf, dataNascimento, tipoSanguineo, nacionalidade, naturalidadeUf, dataExpedicao, validade, foto, equipamentoTipo, equipamentoMarca, equipamentoNrSerie } = req.body;
       if (!nome) return res.status(400).json({ error: 'Nome é obrigatório.' });
-      const dupPost = await pool.query('SELECT id FROM agentes WHERE funcional=$1 AND funcional<>''', [funcional || '']);
+      const dupPost = await pool.query('SELECT id FROM agentes WHERE funcional=$1 AND funcional<>$2', [funcional || '', '']);
       if (dupPost.rows.length > 0) return res.status(409).json({ error: 'Já existe um agente com esse número funcional.' });
       const { rows } = await pool.query(
         `INSERT INTO agentes (nome, matricula, funcional, cpf, data_nascimento, tipo_sanguineo, nacionalidade, naturalidade_uf, data_expedicao, validade, foto, equipamento_tipo, equipamento_marca, equipamento_nr_serie)
@@ -306,7 +306,7 @@ import express from 'express';
     try {
       const { nome, matricula, funcional, cpf, dataNascimento, tipoSanguineo, nacionalidade, naturalidadeUf, dataExpedicao, validade, foto, equipamentoTipo, equipamentoMarca, equipamentoNrSerie } = req.body;
       if (!nome) return res.status(400).json({ error: 'Nome é obrigatório.' });
-      const dupPut = await pool.query('SELECT id FROM agentes WHERE funcional=$1 AND funcional<>'' AND id<>$2', [funcional || '', req.params.id]);
+      const dupPut = await pool.query('SELECT id FROM agentes WHERE funcional=$1 AND funcional<>$2 AND id<>$3', [funcional || '', '', req.params.id]);
       if (dupPut.rows.length > 0) return res.status(409).json({ error: 'Já existe um agente com esse número funcional.' });
       const { rows } = await pool.query(
         `UPDATE agentes SET nome=$1, matricula=$2, funcional=$3, cpf=$4, data_nascimento=$5, tipo_sanguineo=$6, nacionalidade=$7, naturalidade_uf=$8, data_expedicao=$9, validade=$10, foto=$11, equipamento_tipo=$12, equipamento_marca=$13, equipamento_nr_serie=$14 WHERE id=$15 RETURNING *`,
